@@ -196,7 +196,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         children: [
           Container(
             width: 2,
-            decoration: const BoxDecoration(color: MyTheme.accent),
+            decoration: const BoxDecoration(color: Colors.transparent),
           ).marginOnly(top: 5),
           Expanded(
             child: Padding(
@@ -303,7 +303,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           Container(
             width: 2,
             height: 52,
-            decoration: BoxDecoration(color: MyTheme.accent),
+            decoration: BoxDecoration(color: Colors.transparent),
           ),
           Expanded(
             child: Padding(

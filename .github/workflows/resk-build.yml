@@ -1,0 +1,46 @@
+name: Resk Remote build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: "resk-staging-${{ github.run_number }}"
+      resk-only: true
+
+  release:
+    needs: build
+    # Linux is a verification-only build; a Linux failure must not hold back
+    # the Windows/Android release, so check the files we ship instead.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      STAGING: resk-staging-${{ github.run_number }}
+    steps:
+      - name: Collect, rename and publish
+        run: |
+          set -euo pipefail
+          mkdir dl out
+          gh release download "$STAGING" -R "$GITHUB_REPOSITORY" -D dl
+          ls -l dl
+          for f in dl/rustdesk-*-x86_64.exe dl/rustdesk-*-x86_64.msi dl/rustdesk-*-universal*.apk; do
+            [ -e "$f" ] || { echo "missing required artefact: $f"; exit 1; }
+          done
+          for f in dl/rustdesk-*.exe dl/rustdesk-*.msi dl/rustdesk-*.apk; do
+            [ -e "$f" ] || continue
+            b=$(basename "$f"); cp "$f" "out/resk-remote-${b#rustdesk-}"
+          done
+          (cd out && sha256sum * > SHA256SUMS)
+          ver=$(ls out/resk-remote-*-x86_64.exe | sed -E 's/.*resk-remote-([0-9.]+)-.*/\1/')
+          tag="v${ver}-resk.${{ github.run_number }}"
+          gh release create "$tag" out/* -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Resk Remote ${ver} (build ${{ github.run_number }})" \
+            --notes "Resk Remote, preconfigured for rustdesk.resk.ai. Windows: run the .exe, or deploy the .msi. Android: install the universal .apk. Built from $GITHUB_SHA. Source: AGPL-3.0, this repository."
