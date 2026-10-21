@@ -63,7 +63,12 @@ for src, dst in [("resk-logo.png", "logo_light.png"), ("resk-logo-white.png", "l
     im.putalpha(im.getchannel("A").point(lambda v: 0 if v <= 8 else v))
     im = im.crop(im.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox())
     im.thumbnail((600, 120), Image.LANCZOS)   # 2x of the 300x60 slot
-    im.save(f"flutter/assets/{dst}")
+    # Desktop draws the logo in a 176px-wide slot with a 12px inset, while the
+    # text below starts at 20px. 26px of side padding lands the R on that line.
+    pad = 26
+    padded = Image.new("RGBA", (im.width + 2 * pad, im.height), (0, 0, 0, 0))
+    padded.alpha_composite(im, (pad, 0))
+    padded.save(f"flutter/assets/{dst}")
 
 # Android launcher
 for dpi, n in [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)]:
